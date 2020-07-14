@@ -21,12 +21,10 @@ public class MinecraftEventHandler implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent playerDeathEvent){
-        Player player = playerDeathEvent.getEntity();
-        ScoreboardManager manager = Bukkit.getScoreboardManager();
-        Scoreboard board = manager.getNewScoreboard();
+        Player player = playerDeathEvent.getEntity().getPlayer();
+        Scoreboard board = player.getScoreboard();
         Objective objective = board.getObjective("Deaths");
-        Score score = objective.getScore(player);
-        bot.botMessenger.sendMessage(player.getDisplayName() + " has died.");
-        bot.botMessenger.sendMessage(score.toString());
+        Score score = objective.getScore(player.getName());
+        bot.botMessenger.sendMessage(player.getDisplayName() + " has died. Total Deaths: " + Integer.toString(score.getScore()+1));
     }
 }

@@ -1,8 +1,12 @@
 package com.gmail.jlmerrett.MinecraftBot;
 
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
+import java.util.Collection;
 
 public class DiscordEventListener extends ListenerAdapter {
 
@@ -13,18 +17,49 @@ public class DiscordEventListener extends ListenerAdapter {
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event){
-        Message msg = event.getMessage();
-        if (msg.getContentRaw().equals("!ram")){
-            Runtime r = Runtime.getRuntime();
-            botMessenger.sendMessage("Total: " + r.totalMemory()/1048576 + "mB");
-            botMessenger.sendMessage("Used: " + (r.totalMemory() - r.freeMemory())/1048576 + "mB");
-            botMessenger.sendMessage("Free: " + r.freeMemory()/1048576 + "mB");
+        String message = event.getMessage().getContentRaw();
+        if (message.equals("!ram")) {
+            runRamCommand();
+        }
+        if (message.equals("!playerlist")) {
+            runListCommand();
+        }
+        if (message.equals("!plugins")) {
+            runPluginCommand();
         }
 
     }
 
     public void setBotMessenger (BotMessenger botMessenger){
         this.botMessenger = botMessenger;
+    }
+
+    private void runRamCommand(){
+        Runtime r = Runtime.getRuntime();
+        StringBuilder message = new StringBuilder("Total: " + r.totalMemory()/1048576 + "MB\n");
+        message.append("Used: ").append((r.totalMemory() - r.freeMemory()) / 1048576).append("MB\n");
+        message.append("Free: ").append(r.freeMemory() / 1048576).append("MB");
+        botMessenger.sendMessage(message.toString());
+    }
+
+    private void runListCommand(){
+        Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+        StringBuilder message = new StringBuilder("Players online: ");
+        for (Player player : players){
+            message.append(player.getDisplayName()).append(", ");
+        }
+        message.substring(0, message.length()-4);
+        botMessenger.sendMessage(message.toString());
+    }
+
+    private void runPluginCommand(){
+        Plugin[] plugins = Bukkit.getServer().getPluginManager().getPlugins();
+        StringBuilder message = new StringBuilder("Plugins: ");
+        for (Plugin plugin : plugins){
+            message.append(plugin.getName()).append(", ");
+        }
+        message.substring(0, message.length()-4);
+        botMessenger.sendMessage(message.toString());
     }
 
 }

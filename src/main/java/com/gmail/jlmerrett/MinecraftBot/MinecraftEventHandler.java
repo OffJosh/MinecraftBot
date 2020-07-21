@@ -5,16 +5,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerCommandSendEvent;
+import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
 public class MinecraftEventHandler implements Listener {
 
-    Bot bot;
+    BotMessenger botMessenger;
+    boolean isReloading;
 
     public MinecraftEventHandler(Bot bot){
-        this.bot = bot;
+        this.botMessenger = bot.botMessenger;
     }
 
     @EventHandler
@@ -23,6 +27,20 @@ public class MinecraftEventHandler implements Listener {
         Scoreboard board = player.getScoreboard();
         Objective objective = board.getObjective("Deaths");
         Score score = objective.getScore(player.getName());
-        bot.botMessenger.sendMessage(player.getDisplayName() + " has died. Total Deaths: " + Integer.toString(score.getScore()+1));
+        botMessenger.sendMessage(playerDeathEvent.getDeathMessage() + ".\nTotal Deaths: " + (score.getScore() + 1));
+    }
+
+    @EventHandler
+    public void onServerCommandEvent(ServerCommandEvent serverCommandEvent){
+        if(serverCommandEvent.getCommand().equals("reload confirm")){
+            isReloading = true;
+        }
+    }
+
+    @EventHandler
+    public void onPlayerCommandPreprocessEvent(PlayerCommandPreprocessEvent playerCommandPreprocessEvent){
+        if(playerCommandPreprocessEvent.getPlayer().isOp() && playerCommandPreprocessEvent.getMessage().equals("/reload confirm")){
+            isReloading = true;
+        }
     }
 }

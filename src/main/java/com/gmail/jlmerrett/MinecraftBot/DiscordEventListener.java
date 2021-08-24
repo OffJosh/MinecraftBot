@@ -27,11 +27,23 @@ public class DiscordEventListener extends ListenerAdapter {
         if (message.equals("!plugins")) {
             runPluginCommand();
         }
+        if (message.contains("!whitelist")) {
+            runWhitelistCommand(message);
+        }
 
     }
 
     public void setBotMessenger (BotMessenger botMessenger){
         this.botMessenger = botMessenger;
+    }
+
+    private void runWhitelistCommand(String message){
+        String playerName = message.substring(message.lastIndexOf(" ") + 1);
+        String command = "whitelist add " + playerName;
+        Bukkit.getScheduler().runTask(MinecraftBot.plugin, () ->{
+            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
+        });
+        botMessenger.sendMessage("Adding " + playerName + " to the whitelist.");
     }
 
     private void runRamCommand(){

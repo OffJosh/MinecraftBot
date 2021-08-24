@@ -1,6 +1,5 @@
 package com.gmail.jlmerrett.MinecraftBot;
 
-import com.github.cliftonlabs.json_simple.JsonArray;
 import com.github.cliftonlabs.json_simple.JsonException;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import com.github.cliftonlabs.json_simple.Jsoner;
@@ -44,13 +43,7 @@ public class DiscordEventListener extends ListenerAdapter {
                 runUnWhitelistCommand(message);
             }
             if (message.contains("!link")) {
-                try {
-                    runLinkCommand(event);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (JsonException e) {
-                    e.printStackTrace();
-                }
+                runLinkCommand(event);
             }
         }
     }
@@ -59,7 +52,7 @@ public class DiscordEventListener extends ListenerAdapter {
         this.botMessenger = botMessenger;
     }
 
-    private void runLinkCommand(MessageReceivedEvent event) throws IOException, JsonException {
+    private void runLinkCommand(MessageReceivedEvent event){
         if (event.getMessage().getMentionedUsers().size() == 1) {
             String discordUser = event.getMessage().getMentionedUsers().toString();
             String discordUserId = discordUser.substring(
@@ -72,20 +65,14 @@ public class DiscordEventListener extends ListenerAdapter {
             botMessenger.sendMessage("Linking Discord user **" + discordUser + "** with Minecraft user **" + minecraftUser + "**");
             botMessenger.sendMessage(discordUserId + " " + minecraftUUID);
 
-            JsonArray linkedIDs;
-
-            try(FileReader fileReader = new FileReader(MinecraftBot.plugin.getDataFolder() + "/discord_id_player_uuid.json")){
-                linkedIDs = Jsoner.deserializeMany(fileReader);
+            try{
+                JSONHandler.addUserToFile(discordUserId, minecraftUUID);
             }
-
-            JsonObject newUser = new JsonObject();
-            newUser.put("discord_id", "690920025028165702");
-            newUser.put("minecraft_uuid", "5ce1d15343494ad28cd533c4ecbecd17");
-
-            linkedIDs.add(newUser);
-
-            try( FileWriter fileWriter = new FileWriter(MinecraftBot.plugin.getDataFolder() + "/discord_id_player_uuid.json")){
-                Jsoner.serialize(linkedIDs, fileWriter);
+            catch (IOException ioException){
+                botMessenger.sendMessage("File not found, tag @OffJosh");
+            }
+            catch (JsonException jsonException){
+                botMessenger.sendMessage("Something broke with the JSON, tag @OffJosh");
             }
         }
         else{
@@ -157,6 +144,7 @@ public class DiscordEventListener extends ListenerAdapter {
                 inputStream = httpURLConnection.getInputStream();
             } else {
                 inputStream = httpURLConnection.getErrorStream();
+
             }
 
             BufferedReader in = new BufferedReader(
@@ -181,7 +169,7 @@ public class DiscordEventListener extends ListenerAdapter {
             botMessenger.sendMessage("Unable to find Minecraft user: " + minecraftUserName);
         }
         catch (IOException e) {
-            e.printStackTrace();
+            botMessenger.sendMessage("Unable to get data from API Reponse");
         }
         return null;
     }

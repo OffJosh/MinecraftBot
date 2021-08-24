@@ -1,11 +1,20 @@
 package com.gmail.jlmerrett.MinecraftBot;
 
+import com.github.cliftonlabs.json_simple.JsonArray;
+import com.github.cliftonlabs.json_simple.JsonException;
+import com.github.cliftonlabs.json_simple.JsonObject;
+import com.github.cliftonlabs.json_simple.Jsoner;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;;
 import java.util.Collection;
 
 public class DiscordEventListener extends ListenerAdapter {
@@ -17,24 +26,76 @@ public class DiscordEventListener extends ListenerAdapter {
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event){
-        String message = event.getMessage().getContentRaw();
-        if (message.equals("!ram")) {
-            runRamCommand();
+        if (!event.getAuthor().getId().equals(ConfigFile.getString("bot_id"))) {
+            String message = event.getMessage().getContentRaw();
+            if (message.equals("!ram")) {
+                runRamCommand();
+            }
+            if (message.equals("!playerlist")) {
+                runListCommand();
+            }
+            if (message.equals("!plugins")) {
+                runPluginCommand();
+            }
+            if (message.contains("!whitelist")) {
+                runWhitelistCommand(message);
+            }
+            if (message.contains("!unwhitelist")) {
+                runUnWhitelistCommand(message);
+            }
+            if (message.contains("!link")) {
+                try {
+                    runLinkCommand(event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JsonException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        if (message.equals("!playerlist")) {
-            runListCommand();
-        }
-        if (message.equals("!plugins")) {
-            runPluginCommand();
-        }
-        if (message.contains("!whitelist")) {
-            runWhitelistCommand(message);
-        }
-
     }
 
     public void setBotMessenger (BotMessenger botMessenger){
         this.botMessenger = botMessenger;
+    }
+
+    private void runLinkCommand(MessageReceivedEvent event) throws IOException, JsonException {
+        if (event.getMessage().getMentionedUsers().size() == 1) {
+            String discordUser = event.getMessage().getMentionedUsers().toString();
+            String discordUserId = discordUser.substring(
+                    discordUser.lastIndexOf("(")+1,
+                    discordUser.lastIndexOf(")"));
+            String message = event.getMessage().getContentRaw();
+            String minecraftUser = message.substring(message.lastIndexOf(" ") + 1);
+            String minecraftUUID = getUUIDFromUsername(minecraftUser);
+
+            botMessenger.sendMessage("Linking Discord user **" + discordUser + "** with Minecraft user **" + minecraftUser + "**");
+            botMessenger.sendMessage(discordUserId + " " + minecraftUUID);
+
+            JsonArray linkedIDs;
+
+            try(FileReader fileReader = new FileReader(MinecraftBot.plugin.getDataFolder() + "/discord_id_player_uuid.json")){
+                linkedIDs = Jsoner.deserializeMany(fileReader);
+            }
+
+            JsonObject newUser = new JsonObject();
+            newUser.put("discord_id", "690920025028165702");
+            newUser.put("minecraft_uuid", "5ce1d15343494ad28cd533c4ecbecd17");
+
+            linkedIDs.add(newUser);
+
+            try( FileWriter fileWriter = new FileWriter(MinecraftBot.plugin.getDataFolder() + "/discord_id_player_uuid.json")){
+                Jsoner.serialize(linkedIDs, fileWriter);
+            }
+        }
+        else{
+            if (event.getMessage().getMentionedUsers().size() > 1) {
+                botMessenger.sendMessage("More than one user was tagged, please do this one at a time");
+            } else {
+                botMessenger.sendMessage("No user was tagged, please tag a user");
+            }
+
+        }
     }
 
     private void runWhitelistCommand(String message){
@@ -44,6 +105,15 @@ public class DiscordEventListener extends ListenerAdapter {
             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
         });
         botMessenger.sendMessage("Adding " + playerName + " to the whitelist.");
+    }
+
+    private void runUnWhitelistCommand(String message){
+        String playerName = message.substring(message.lastIndexOf(" ") + 1);
+        String command = "whitelist remove " + playerName;
+        Bukkit.getScheduler().runTask(MinecraftBot.plugin, () ->{
+            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
+        });
+        botMessenger.sendMessage("Removing " + playerName + " from the whitelist.");
     }
 
     private void runRamCommand(){
@@ -72,6 +142,48 @@ public class DiscordEventListener extends ListenerAdapter {
         }
         message.substring(0, message.length()-4);
         botMessenger.sendMessage(message.toString());
+    }
+
+    private String getUUIDFromUsername(String minecraftUserName){
+        try {
+            URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + minecraftUserName);
+            URLConnection urlConnection = url.openConnection();
+            HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
+
+            int responseCode = httpURLConnection.getResponseCode();
+            InputStream inputStream;
+
+            if (200 <= responseCode && responseCode <= 299) {
+                inputStream = httpURLConnection.getInputStream();
+            } else {
+                inputStream = httpURLConnection.getErrorStream();
+            }
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(
+                            inputStream));
+
+            StringBuilder response = new StringBuilder();
+            String currentLine;
+
+            while ((currentLine = in.readLine()) != null)
+                response.append(currentLine);
+
+            in.close();
+
+            JsonObject jsonObject = Jsoner.deserialize(response.toString(), new JsonObject());
+
+            String uuid = jsonObject.get("id").toString();
+
+            return uuid;
+        }
+        catch (MalformedURLException malformedURLException){
+            botMessenger.sendMessage("Unable to find Minecraft user: " + minecraftUserName);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

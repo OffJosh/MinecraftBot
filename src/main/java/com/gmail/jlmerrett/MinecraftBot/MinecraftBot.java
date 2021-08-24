@@ -1,7 +1,6 @@
 package com.gmail.jlmerrett.MinecraftBot;
 
-import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.security.auth.login.LoginException;
@@ -10,7 +9,7 @@ public class MinecraftBot extends JavaPlugin {
 
     BotMessenger botMessenger;
     MinecraftEventHandler eventHandler;
-    FileConfiguration configFile;
+    static Plugin plugin;
 
     @Override
     public void onEnable() {
@@ -29,8 +28,9 @@ public class MinecraftBot extends JavaPlugin {
     }
 
     private void initPlugin() {
-        this.saveDefaultConfig();
-        configFile = this.getConfig();
+        plugin = this;
+        plugin.saveDefaultConfig();
+        ConfigFile.addConfig(plugin.getConfig());
         Bot bot = null;
         try {
             bot = new Bot();

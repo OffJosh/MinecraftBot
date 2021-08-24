@@ -1,6 +1,5 @@
 package com.gmail.jlmerrett.MinecraftBot;
 
-import net.dv8tion.jda.api.AccountType;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 
@@ -13,9 +12,9 @@ public class Bot{
 
     public Bot() throws LoginException{
         discordEventListener = new DiscordEventListener();
-        JDABuilder builder = new JDABuilder(AccountType.BOT);
-        String token = "NzMyNTc0Mjk1NTQ4NjI0ODk2.Xw2pEg.GqmK0ufMqH-rxus2i_hIdQXqNdg";
-        builder.setToken(token);
+        String token = ConfigFile.getString("bot_token");
+
+        JDABuilder builder = JDABuilder.createDefault(token);
         builder.addEventListeners(discordEventListener);
         JDA bot = builder.build();
         try {
